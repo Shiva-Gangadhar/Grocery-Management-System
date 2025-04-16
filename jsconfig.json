@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "*": ["*", "Backend/*", "Frontend/*"]
+    },
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["Backend/**/*", "Frontend/**/*"],
+  "exclude": ["node_modules"]
+} 

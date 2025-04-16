@@ -1,0 +1,16 @@
+{
+  "name": "kirana-management-system",
+  "version": "1.0.0",
+  "description": "Kirana Management System",
+  "scripts": {
+    "start": "cd Backend && npm run server",
+    "start:frontend": "cd Frontend && npm start",
+    "start:backend": "cd Backend && npm run server",
+    "install:all": "npm install && cd Frontend && npm install && cd ../Backend && npm install",
+    "dev": "concurrently \"npm run start:frontend\" \"npm run start:backend\""
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "nodemailer": "^6.10.1"
+  }
+}
