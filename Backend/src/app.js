@@ -15,7 +15,7 @@ const { startAutoOrderService } = require('./services/autoOrderService');
 const app = express();
 
 // Connect to MongoDB
-mongoose.connect(config.mongoURI, {
+mongoose.connect(config.mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })

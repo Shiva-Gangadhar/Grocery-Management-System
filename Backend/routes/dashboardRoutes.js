@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getStats,
-  getSalesData,
-  getTopItems
+  getSalesData
 } = require('../controllers/dashboardController');
 const { auth } = require('../middleware/auth');
 
@@ -15,8 +14,5 @@ router.get('/stats', getStats);
 
 // Get sales data
 router.get('/sales', getSalesData);
-
-// Get top items
-router.get('/top-items', getTopItems);
 
 module.exports = router; 

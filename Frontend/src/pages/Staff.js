@@ -22,12 +22,31 @@ import {
   Select,
   FormControl,
   InputLabel,
-  InputAdornment
+  InputAdornment,
+  Card,
+  CardContent,
+  Chip,
+  Tooltip,
+  alpha,
+  Fade,
+  Zoom
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
+import { 
+  Edit as EditIcon, 
+  Delete as DeleteIcon, 
+  Search as SearchIcon,
+  Add as AddIcon,
+  Person as PersonIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  Work as WorkIcon
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import { useTheme } from '@mui/material/styles';
 import axios from 'axios';
 
 const Staff = () => {
+  const theme = useTheme();
   const [staff, setStaff] = useState([]);
   const [filteredStaff, setFilteredStaff] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +61,14 @@ const Staff = () => {
     role: 'Salesperson',
     password: ''
   });
+
+  const roleColors = {
+    'Manager': 'primary',
+    'Salesperson': 'success',
+    'Cashier': 'info',
+    'Stock Keeper': 'warning',
+    'Admin': 'error'
+  };
 
   useEffect(() => {
     fetchStaff();
@@ -196,99 +223,209 @@ const Staff = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress />
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="80vh"
+        sx={{
+          background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+          borderRadius: '16px',
+          p: 4
+        }}
+      >
+        <CircularProgress sx={{ color: 'white' }} />
       </Box>
     );
   }
 
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Staff Members</Typography>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 3,
+        background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+        borderRadius: '16px',
+        p: 3,
+        boxShadow: 3
+      }}>
+        <Typography variant="h4" sx={{ 
+          color: 'white',
+          fontWeight: 'bold',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+        }}>
+          Staff Members
+        </Typography>
         <Button
           variant="contained"
-          color="primary"
+          startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
+          sx={{
+            background: 'white',
+            color: theme.palette.primary.main,
+            '&:hover': {
+              background: alpha(theme.palette.primary.main, 0.1),
+            },
+          }}
         >
           Add Staff Member
         </Button>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+        <Fade in={!!error}>
+          <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+            {error}
+          </Alert>
+        </Fade>
       )}
 
-      <Box mb={3}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search by name, email, or role..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
+      <Card sx={{ mb: 3, borderRadius: '12px', boxShadow: 3 }}>
+        <CardContent>
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Search by name, email, or role..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: theme.palette.primary.main }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '12px',
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme.palette.primary.main,
+                },
+              },
+            }}
+          />
+        </CardContent>
+      </Card>
 
-      <TableContainer component={Paper}>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          borderRadius: '12px',
+          boxShadow: 3,
+          '& .MuiTableRow-root:hover': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+          },
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Actions</TableCell>
+            <TableRow sx={{ 
+              background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+            }}>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Email</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Phone</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Role</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredStaff.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  {searchTerm ? 'No staff members found matching your search' : 'No staff members found'}
+            {filteredStaff.map((member, index) => (
+              <motion.tr
+                key={member._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+              >
+                <TableCell>{member._id}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PersonIcon sx={{ color: theme.palette.primary.main }} />
+                    {member.name}
+                  </Box>
                 </TableCell>
-              </TableRow>
-            ) : (
-              filteredStaff.map((member, index) => (
-                <TableRow key={member._id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{member.name}</TableCell>
-                  <TableCell>{member.email}</TableCell>
-                  <TableCell>{member.phone || '-'}</TableCell>
-                  <TableCell>{member.role}</TableCell>
-                  <TableCell>
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleOpenDialog(member)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDeleteStaff(member._id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <EmailIcon sx={{ color: theme.palette.secondary.main }} />
+                    {member.email}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PhoneIcon sx={{ color: theme.palette.success.main }} />
+                    {member.phone || '-'}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    icon={<WorkIcon />}
+                    label={member.role}
+                    color={roleColors[member.role] || 'default'}
+                    sx={{ 
+                      borderRadius: '8px',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Edit">
+                      <IconButton
+                        onClick={() => handleOpenDialog(member)}
+                        sx={{
+                          color: theme.palette.primary.main,
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          },
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        onClick={() => handleDeleteStaff(member._id)}
+                        sx={{
+                          color: theme.palette.error.main,
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          },
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </TableCell>
+              </motion.tr>
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{editStaff ? 'Edit Staff Member' : 'Add New Staff Member'}</DialogTitle>
-        <DialogContent>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            boxShadow: 3,
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+          color: 'white',
+          fontWeight: 'bold'
+        }}>
+          {editStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
             <TextField
               fullWidth
@@ -298,6 +435,7 @@ const Staff = () => {
               onChange={handleInputChange}
               margin="normal"
               required
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -308,6 +446,7 @@ const Staff = () => {
               onChange={handleInputChange}
               margin="normal"
               required
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -316,7 +455,23 @@ const Staff = () => {
               value={formData.phone}
               onChange={handleInputChange}
               margin="normal"
+              sx={{ mb: 2 }}
             />
+            <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
+              <InputLabel>Role</InputLabel>
+              <Select
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                label="Role"
+              >
+                <MenuItem value="Manager">Manager</MenuItem>
+                <MenuItem value="Salesperson">Salesperson</MenuItem>
+                <MenuItem value="Cashier">Cashier</MenuItem>
+                <MenuItem value="Stock Keeper">Stock Keeper</MenuItem>
+                <MenuItem value="Admin">Admin</MenuItem>
+              </Select>
+            </FormControl>
             {!editStaff && (
               <TextField
                 fullWidth
@@ -327,31 +482,22 @@ const Staff = () => {
                 onChange={handleInputChange}
                 margin="normal"
                 required
-                helperText="Password must be at least 6 characters long"
+                sx={{ mb: 2 }}
               />
             )}
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Role</InputLabel>
-              <Select
-                name="role"
-                value={formData.role}
-                onChange={handleInputChange}
-                label="Role"
-                required
-              >
-                <MenuItem value="Cashier">Cashier</MenuItem>
-                <MenuItem value="Salesperson">Salesperson</MenuItem>
-              </Select>
-            </FormControl>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseDialog} sx={{ borderRadius: '8px' }}>
+            Cancel
+          </Button>
           <Button 
-            type="submit" 
+            onClick={handleSubmit} 
             variant="contained" 
-            color="primary"
-            onClick={handleSubmit}
+            sx={{ 
+              borderRadius: '8px',
+              background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+            }}
           >
             {editStaff ? 'Update' : 'Add'}
           </Button>

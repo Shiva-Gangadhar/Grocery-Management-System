@@ -5,7 +5,7 @@ const staffSchema = new mongoose.Schema({
   staffId: {
     type: String,
     unique: true,
-    sparse: true, // This allows multiple documents to have null values
+    required: true,
     trim: true
   },
   name: {
@@ -53,36 +53,39 @@ const staffSchema = new mongoose.Schema({
 
 // Generate a unique staffId before saving
 staffSchema.pre('save', async function(next) {
-  // Only generate staffId for new documents
-  if (this.isNew && !this.staffId) {
+  if (this.isNew) {
     try {
-      // Find the highest staffId and increment it
-      const lastStaff = await this.constructor.findOne({}, {}, { sort: { 'staffId': -1 } });
-      let newStaffId = 'S001';
-      
-      if (lastStaff && lastStaff.staffId) {
-        const lastIdNumber = parseInt(lastStaff.staffId.substring(1));
-        newStaffId = 'S' + String(lastIdNumber + 1).padStart(3, '0');
+      // Find the highest staffId
+      const highestStaff = await this.constructor.findOne({}, { staffId: 1 })
+        .sort({ staffId: -1 })
+        .lean();
+
+      let newStaffId;
+      if (highestStaff && highestStaff.staffId) {
+        // Extract the number part and increment
+        const numPart = parseInt(highestStaff.staffId.replace('STF', ''));
+        newStaffId = `STF${String(numPart + 1).padStart(4, '0')}`;
+      } else {
+        // If no staff exists, start with STF0001
+        newStaffId = 'STF0001';
       }
-      
+
+      // Check if the generated ID already exists
+      const existingStaff = await this.constructor.findOne({ staffId: newStaffId });
+      if (existingStaff) {
+        // If exists, try the next number
+        const numPart = parseInt(newStaffId.replace('STF', ''));
+        newStaffId = `STF${String(numPart + 1).padStart(4, '0')}`;
+      }
+
       this.staffId = newStaffId;
+      next();
     } catch (error) {
-      console.error('Error generating staffId:', error);
-      // Continue without staffId if there's an error
+      next(error);
     }
+  } else {
+    next();
   }
-  
-  // Hash password if it's modified
-  if (this.isModified('password')) {
-    try {
-      const salt = await bcrypt.genSalt(10);
-      this.password = await bcrypt.hash(this.password, salt);
-    } catch (error) {
-      return next(error);
-    }
-  }
-  
-  next();
 });
 
 // Method to compare password

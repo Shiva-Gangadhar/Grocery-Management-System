@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const {
   getAllItems,
-  getItemById,
   createItem,
   updateItem,
   deleteItem,
@@ -18,9 +17,6 @@ router.get('/', getAllItems);
 
 // Get low stock items
 router.get('/low-stock', getLowStockItems);
-
-// Get single item
-router.get('/:id', getItemById);
 
 // Admin only routes
 router.use(isAdmin);

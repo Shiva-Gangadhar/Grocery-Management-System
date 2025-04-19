@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  name: {
+  fullName: {
     type: String,
     required: true,
     trim: true
@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    lowercase: true
+    lowercase: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
   },
   password: {
     type: String,
@@ -21,8 +22,9 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'user'],
-    default: 'user'
+    enum: ['Admin', 'Staff', 'Supplier'],
+    default: 'Staff',
+    required: true
   },
   phone: {
     type: String,
@@ -37,23 +39,32 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  lastLogin: {
+    type: Date
   }
 }, {
   timestamps: true
 });
 
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  const user = this;
-  if (user.isModified('password')) {
-    user.password = await bcrypt.hash(user.password, 8);
-  }
-  next();
-});
-
-// Compare password method
+// Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema); 
+// Pre-save middleware to hash password
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+const User = mongoose.model('User', userSchema);
+
+module.exports = User; 

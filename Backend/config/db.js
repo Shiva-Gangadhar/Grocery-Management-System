@@ -3,7 +3,7 @@ const config = require('./config');
 
 const connectDB = async () => {
   try {
-    if (!config.mongoURI) {
+    if (!config.mongoUri) {
       throw new Error('MongoDB URI is not defined in configuration');
     }
 
@@ -21,18 +21,18 @@ const connectDB = async () => {
     };
 
     console.log('Attempting to connect to MongoDB...');
-    console.log('MongoDB URI:', config.mongoURI.replace(/\/\/[^:]+:[^@]+@/, '//****:****@')); // Hide credentials
+    console.log('MongoDB URI:', config.mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//****:****@')); // Hide credentials
     
     // Try to connect to MongoDB
     let conn;
     try {
-      conn = await mongoose.connect(config.mongoURI, options);
+      conn = await mongoose.connect(config.mongoUri, options);
       console.log('Connected to MongoDB');
     } catch (connectionError) {
       console.error('Initial MongoDB connection error:', connectionError);
       
       // If connection fails, try to connect to a local MongoDB instance
-      if (config.mongoURI.includes('mongodb+srv://')) {
+      if (config.mongoUri.includes('mongodb+srv://')) {
         console.log('Trying to connect to local MongoDB instead...');
         const localUri = 'mongodb://localhost:27017/Kirana';
         conn = await mongoose.connect(localUri, options);

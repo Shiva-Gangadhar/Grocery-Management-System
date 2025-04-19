@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const config = require('../../config/config');
 const User = require('../models/User');
 
 const auth = async (req, res, next) => {
@@ -7,30 +6,64 @@ const auth = async (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No authentication token, access denied' 
+      });
     }
 
-    const decoded = jwt.verify(token, config.jwtSecret);
-    const user = await User.findById(decoded.userId).select('-password');
-    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ _id: decoded.userId, isActive: true });
+
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'User not found or inactive' 
+      });
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
+    req.user = user;
+    req.token = token;
+    next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(401).json({ 
+      success: false, 
+      message: 'Invalid authentication token' 
+    });
+  }
+};
+
+const adminAuth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'No authentication token, access denied' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ _id: decoded.userId, isActive: true });
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found or inactive' });
+    }
+
+    if (user.role !== 'Admin') {
+      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
     }
 
     req.user = user;
+    req.token = token;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token is not valid' });
+    console.error('Admin auth middleware error:', error);
+    res.status(401).json({ message: 'Please authenticate' });
   }
 };
 
-// Middleware to check if user is admin
-const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Access denied. Admin only.' });
-  }
-};
-
-module.exports = { auth, isAdmin }; 
+module.exports = { auth, adminAuth }; 

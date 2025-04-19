@@ -79,7 +79,7 @@ const inventoryItems = [
 const seedInventory = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect(config.mongoURI, {
+    await mongoose.connect(config.mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });

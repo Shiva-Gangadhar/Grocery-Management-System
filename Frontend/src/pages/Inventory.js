@@ -23,12 +23,29 @@ import {
   Select,
   FormControl,
   InputLabel,
-  Snackbar
+  Snackbar,
+  useTheme,
+  alpha,
+  IconButton,
+  Tooltip,
+  Card,
+  CardContent,
+  Chip
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
+import { 
+  Add as AddIcon, 
+  Edit as EditIcon, 
+  Delete as DeleteIcon, 
+  Search as SearchIcon,
+  Inventory as InventoryIcon,
+  Warning as WarningIcon,
+  Category as CategoryIcon
+} from '@mui/icons-material';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 
 const Inventory = () => {
+  const theme = useTheme();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,21 +58,21 @@ const Inventory = () => {
     unit: '',
     price: '',
     minimumStock: '',
-    supplier: {
-      name: '',
-      contact: '',
-      email: ''
-    },
     description: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchBy, setSearchBy] = useState('name'); // 'name' or 'category'
+  const [searchBy, setSearchBy] = useState('name');
   const [categories] = useState(['Groceries', 'Household', 'Snacks', 'Beverages', 'Personal Care', 'Other']);
   const [units] = useState(['kg', 'g', 'l', 'ml', 'pcs', 'box', 'pack']);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success'
+  });
+  const [stats, setStats] = useState({
+    totalItems: 0,
+    lowStock: 0,
+    categories: 0
   });
 
   // Define fetchInventory function
@@ -112,6 +129,19 @@ const Inventory = () => {
     checkLowStockAndCreateOrders();
   }, []);
 
+  useEffect(() => {
+    if (inventory.length > 0) {
+      const lowStockItems = inventory.filter(item => item.quantity <= item.minimumStock).length;
+      const uniqueCategories = new Set(inventory.map(item => item.category)).size;
+
+      setStats({
+        totalItems: inventory.length,
+        lowStock: lowStockItems,
+        categories: uniqueCategories
+      });
+    }
+  }, [inventory]);
+
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -143,11 +173,6 @@ const Inventory = () => {
         unit: item.unit,
         price: item.price,
         minimumStock: item.minimumStock,
-        supplier: {
-          name: item.supplier?.name || '',
-          contact: item.supplier?.contact || '',
-          email: item.supplier?.email || ''
-        },
         description: item.description || ''
       });
     } else {
@@ -159,11 +184,6 @@ const Inventory = () => {
         unit: '',
         price: '',
         minimumStock: '',
-        supplier: {
-          name: '',
-          contact: '',
-          email: ''
-        },
         description: ''
       });
     }
@@ -319,120 +339,306 @@ const Inventory = () => {
     }
   };
 
+  const StatCard = ({ title, value, icon, color }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card 
+        sx={{ 
+          height: '100%',
+          background: `linear-gradient(135deg, ${alpha(theme.palette[color].main, 0.1)} 0%, ${alpha(theme.palette[color].light, 0.1)} 100%)`,
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${alpha(theme.palette[color].main, 0.1)}`,
+          boxShadow: `0 8px 32px ${alpha(theme.palette[color].main, 0.1)}`,
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: `0 12px 40px ${alpha(theme.palette[color].main, 0.2)}`,
+          }
+        }}
+      >
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Box
+              sx={{
+                backgroundColor: alpha(theme.palette[color].main, 0.1),
+                borderRadius: '12px',
+                p: 1.5,
+                mr: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 4px 12px ${alpha(theme.palette[color].main, 0.2)}`,
+              }}
+            >
+              {React.cloneElement(icon, { sx: { color: theme.palette[color].main, fontSize: 28 } })}
+            </Box>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+              {title}
+            </Typography>
+          </Box>
+          <Typography 
+            variant="h4" 
+            component="div" 
+            sx={{ 
+              color: theme.palette[color].main,
+              fontWeight: 'bold',
+              textShadow: `0 2px 4px ${alpha(theme.palette[color].main, 0.2)}`,
+            }}
+          >
+            {value}
+          </Typography>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+
+  if (loading) {
+    return (
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="80vh"
+        sx={{
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+        }}
+      >
+        <CircularProgress size={60} thickness={4} />
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
+    <Box 
+      sx={{
+        p: 3,
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Typography 
+          variant="h4" 
+          gutterBottom 
+          sx={{ 
+            mb: 4,
+            fontWeight: 'bold',
+            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
           Inventory Management
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setOpenDialog(true)}
-        >
-          Add New Item
-        </Button>
-      </Box>
+      </motion.div>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          {/* Removed duplicate Add New Item button */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Total Items"
+            value={stats.totalItems}
+            icon={<InventoryIcon />}
+            color="primary"
+          />
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <FormControl sx={{ minWidth: 120 }}>
-              <InputLabel>Search By</InputLabel>
-              <Select
-                value={searchBy}
-                onChange={handleSearchByChange}
-                label="Search By"
-              >
-                <MenuItem value="name">Item Name</MenuItem>
-                <MenuItem value="category">Category</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              fullWidth
-              label="Search"
-              variant="outlined"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Low Stock"
+            value={stats.lowStock}
+            icon={<WarningIcon />}
+            color="error"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Categories"
+            value={stats.categories}
+            icon={<CategoryIcon />}
+            color="success"
+          />
         </Grid>
       </Grid>
 
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Unit</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Minimum Stock</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredInventory.length === 0 ? (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            borderRadius: 4,
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+            boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.1)}`,
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                size="small"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  minWidth: 200,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                  },
+                }}
+              />
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Search By</InputLabel>
+                <Select
+                  value={searchBy}
+                  onChange={handleSearchByChange}
+                  label="Search By"
+                  sx={{
+                    borderRadius: 2,
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                  }}
+                >
+                  <MenuItem value="name">Name</MenuItem>
+                  <MenuItem value="category">Category</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{
+                borderRadius: 2,
+                background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                boxShadow: `0 4px 8px ${alpha(theme.palette.primary.main, 0.2)}`,
+                '&:hover': {
+                  background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                  boxShadow: `0 6px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                }
+              }}
+            >
+              Add Item
+            </Button>
+          </Box>
+
+          <TableContainer>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    No inventory items found
-                  </TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Quantity</TableCell>
+                  <TableCell>Unit</TableCell>
+                  <TableCell>Price</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ) : (
-                filteredInventory.map((item) => (
-                  <TableRow key={item._id}>
+              </TableHead>
+              <TableBody>
+                {inventory.map((item) => (
+                  <motion.tr
+                    key={item._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
                     <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.category}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>{item.unit}</TableCell>
-                    <TableCell>₹{item.price}</TableCell>
-                    <TableCell>{item.minimumStock}</TableCell>
                     <TableCell>
-                      <Button 
-                        size="small" 
-                        startIcon={<EditIcon />}
-                        onClick={() => handleOpenDialog(item)}
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="small" 
-                        color="error" 
-                        startIcon={<DeleteIcon />}
-                        onClick={() => handleDelete(item._id)}
-                      >
-                        Delete
-                      </Button>
+                      <Chip
+                        label={item.category}
+                        size="small"
+                        sx={{
+                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          color: theme.palette.primary.main,
+                          fontWeight: 'bold',
+                        }}
+                      />
                     </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+                    <TableCell>
+                      <Typography variant="body2">
+                        {item.quantity}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={item.unit}
+                        size="small"
+                        sx={{
+                          backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                          color: theme.palette.secondary.main,
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        ₹{item.price}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={item.quantity <= item.minimumStock ? 'Low Stock' : 'In Stock'}
+                        color={item.quantity <= item.minimumStock ? 'error' : 'success'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            onClick={() => handleOpenDialog(item)}
+                            sx={{
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                              },
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            onClick={() => handleDelete(item._id)}
+                            sx={{
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                backgroundColor: alpha(theme.palette.error.main, 0.1),
+                              },
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </motion.div>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{editItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
@@ -517,35 +723,13 @@ const Inventory = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
-                  Supplier Information
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
-                  label="Supplier Name"
-                  name="supplier.name"
-                  value={formData.supplier.name}
-                  onChange={handleInputChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Supplier Contact"
-                  name="supplier.contact"
-                  value={formData.supplier.contact}
-                  onChange={handleInputChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Supplier Email"
-                  name="supplier.email"
-                  type="email"
-                  value={formData.supplier.email}
+                  label="Description"
+                  name="description"
+                  multiline
+                  rows={3}
+                  value={formData.description}
                   onChange={handleInputChange}
                 />
               </Grid>

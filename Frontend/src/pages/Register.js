@@ -1,30 +1,36 @@
 import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
 import {
-  Container,
   Box,
-  Typography,
-  TextField,
   Button,
+  TextField,
+  Typography,
   Paper,
+  Container,
+  Link,
   Alert,
-  Grid
+  CircularProgress,
+  Fade,
+  useTheme,
+  alpha
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { registerStart, registerSuccess, registerFailure } from '../store/slices/authSlice';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-  const [validationError, setValidationError] = useState('');
-  const dispatch = useDispatch();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const theme = useTheme();
 
   const handleChange = (e) => {
     setFormData({
@@ -35,126 +41,283 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setValidationError('');
+    setError('');
 
-    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      setValidationError('Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
 
-    // Validate password strength
-    if (formData.password.length < 6) {
-      setValidationError('Password must be at least 6 characters long');
-      return;
-    }
+    setLoading(true);
+    dispatch(registerStart());
 
     try {
-      dispatch(registerStart());
-      const response = await axios.post('/api/auth/register', {
-        name: formData.name,
+      const response = await axios.post('http://localhost:5001/api/auth/register', {
+        fullName: formData.fullName,
         email: formData.email,
         password: formData.password
       });
-      dispatch(registerSuccess(response.data));
-      navigate('/login');
+      
+      dispatch(registerSuccess(response.data.data));
+      navigate('/dashboard');
     } catch (err) {
-      dispatch(registerFailure(err.response?.data?.message || 'Registration failed'));
+      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
+      dispatch(registerFailure(errorMessage));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}
-      >
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h5" align="center" gutterBottom>
-            Kirana Management System
-          </Typography>
-          <Typography component="h2" variant="h6" align="center" gutterBottom>
-            Register
-          </Typography>
-          {(error || validationError) && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error || validationError}
-            </Alert>
-          )}
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="name"
-              label="Full Name"
-              name="name"
-              autoComplete="name"
-              autoFocus
-              value={formData.name}
-              onChange={handleChange}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              value={formData.email}
-              onChange={handleChange}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="new-password"
-              value={formData.password}
-              onChange={handleChange}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="confirmPassword"
-              label="Confirm Password"
-              type="password"
-              id="confirmPassword"
-              autoComplete="new-password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+          animation: 'pulse 8s ease-in-out infinite',
+          '@keyframes pulse': {
+            '0%': { transform: 'scale(1)' },
+            '50%': { transform: 'scale(1.2)' },
+            '100%': { transform: 'scale(1)' }
+          }
+        }
+      }}
+    >
+      <Container maxWidth="sm">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Paper
+            elevation={8}
+            sx={{
+              p: 4,
+              width: '100%',
+              maxWidth: 400,
+              borderRadius: 4,
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.1)}`
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.3 }}
             >
-              {loading ? 'Registering...' : 'Register'}
-            </Button>
-            <Grid container justifyContent="flex-end">
-              <Grid item>
-                <Link to="/login" style={{ textDecoration: 'none' }}>
-                  <Typography variant="body2" color="primary">
-                    Already have an account? Sign in
-                  </Typography>
-                </Link>
-              </Grid>
-            </Grid>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+              <Typography
+                variant="h4"
+                component="h1"
+                align="center"
+                gutterBottom
+                sx={{
+                  fontWeight: 'bold',
+                  background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mb: 3
+                }}
+              >
+                Create Account
+              </Typography>
+            </motion.div>
+
+            {error && (
+              <Fade in={!!error}>
+                <Alert 
+                  severity="error" 
+                  sx={{ 
+                    mb: 2,
+                    borderRadius: 2,
+                    boxShadow: `0 2px 4px ${alpha(theme.palette.error.main, 0.1)}`
+                  }}
+                >
+                  {error}
+                </Alert>
+              </Fade>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <TextField
+                  fullWidth
+                  label="Full Name"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  margin="normal"
+                  required
+                  sx={{ 
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.primary.main,
+                      },
+                    },
+                  }}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <TextField
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  margin="normal"
+                  required
+                  sx={{ 
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.primary.main,
+                      },
+                    },
+                  }}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <TextField
+                  fullWidth
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  margin="normal"
+                  required
+                  sx={{ 
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.primary.main,
+                      },
+                    },
+                  }}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+              >
+                <TextField
+                  fullWidth
+                  label="Confirm Password"
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  margin="normal"
+                  required
+                  sx={{ 
+                    mb: 3,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.primary.main,
+                      },
+                    },
+                  }}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  disabled={loading}
+                  sx={{
+                    py: 1.5,
+                    mb: 2,
+                    borderRadius: 2,
+                    background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    boxShadow: `0 4px 8px ${alpha(theme.palette.primary.main, 0.2)}`,
+                    '&:hover': {
+                      background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                      boxShadow: `0 6px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                    },
+                    '&:disabled': {
+                      background: theme.palette.grey[300],
+                    }
+                  }}
+                >
+                  {loading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    'Register'
+                  )}
+                </Button>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+              >
+                <Typography align="center">
+                  Already have an account?{' '}
+                  <Link
+                    component="button"
+                    variant="body2"
+                    onClick={() => navigate('/')}
+                    sx={{
+                      color: theme.palette.primary.main,
+                      textDecoration: 'none',
+                      fontWeight: 'bold',
+                      '&:hover': {
+                        textDecoration: 'underline',
+                        color: theme.palette.primary.dark,
+                      }
+                    }}
+                  >
+                    Login here
+                  </Link>
+                </Typography>
+              </motion.div>
+            </form>
+          </Paper>
+        </motion.div>
+      </Container>
+    </Box>
   );
 };
 

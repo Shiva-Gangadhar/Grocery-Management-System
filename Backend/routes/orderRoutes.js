@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const {
   getAllOrders,
-  getOrderById,
   createOrder,
   updateOrderStatus,
   deleteOrder
@@ -14,9 +13,6 @@ router.use(auth);
 
 // Get all orders
 router.get('/', getAllOrders);
-
-// Get single order
-router.get('/:id', getOrderById);
 
 // Create order
 router.post('/', createOrder);

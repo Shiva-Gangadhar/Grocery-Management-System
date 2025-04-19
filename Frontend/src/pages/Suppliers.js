@@ -17,17 +17,39 @@ import {
   TextField,
   Typography,
   CircularProgress,
-  Alert
+  Alert,
+  Card,
+  CardContent,
+  Chip,
+  Tooltip,
+  alpha,
+  Fade,
+  Zoom,
+  InputAdornment
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { 
+  Add as AddIcon, 
+  Edit as EditIcon, 
+  Delete as DeleteIcon,
+  Business as BusinessIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+  Store as StoreIcon,
+  Search as SearchIcon
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import { useTheme } from '@mui/material/styles';
 import axios from 'axios';
 
 const Suppliers = () => {
+  const theme = useTheme();
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -127,136 +149,312 @@ const Suppliers = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress />
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="80vh"
+        sx={{
+          background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+          borderRadius: '16px',
+          p: 4
+        }}
+      >
+        <CircularProgress sx={{ color: 'white' }} />
       </Box>
     );
   }
 
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Suppliers</Typography>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 3,
+        background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+        borderRadius: '16px',
+        p: 3,
+        boxShadow: 3
+      }}>
+        <Typography variant="h4" sx={{ 
+          color: 'white',
+          fontWeight: 'bold',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+        }}>
+          Suppliers
+        </Typography>
         <Button
           variant="contained"
-          color="primary"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
+          sx={{
+            background: 'white',
+            color: theme.palette.primary.main,
+            '&:hover': {
+              background: alpha(theme.palette.primary.main, 0.1),
+            },
+          }}
         >
           Add Supplier
         </Button>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+        <Fade in={!!error}>
+          <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+            {error}
+          </Alert>
+        </Fade>
       )}
 
-      <TableContainer component={Paper}>
+      <Card sx={{ mb: 3, borderRadius: '12px', boxShadow: 3 }}>
+        <CardContent>
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Search suppliers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: theme.palette.primary.main }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '12px',
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme.palette.primary.main,
+                },
+              },
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          borderRadius: '12px',
+          boxShadow: 3,
+          '& .MuiTableRow-root:hover': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+          },
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Branch</TableCell>
-              <TableCell>Actions</TableCell>
+            <TableRow sx={{ 
+              background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+            }}>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Email</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Phone</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Branch</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {suppliers.map((supplier) => (
-              <TableRow key={supplier._id}>
-                <TableCell>{supplier.name}</TableCell>
-                <TableCell>{supplier.email}</TableCell>
-                <TableCell>{supplier.phone}</TableCell>
-                <TableCell>{supplier.branch}</TableCell>
+            {suppliers.map((supplier, index) => (
+              <motion.tr
+                key={supplier._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+              >
                 <TableCell>
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleOpenDialog(supplier)}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => handleDelete(supplier._id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BusinessIcon sx={{ color: theme.palette.primary.main }} />
+                    {supplier.name}
+                  </Box>
                 </TableCell>
-              </TableRow>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <EmailIcon sx={{ color: theme.palette.secondary.main }} />
+                    {supplier.email}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PhoneIcon sx={{ color: theme.palette.success.main }} />
+                    {supplier.phone}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    icon={<StoreIcon />}
+                    label={supplier.branch}
+                    color="info"
+                    sx={{ 
+                      borderRadius: '8px',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Edit">
+                      <IconButton
+                        onClick={() => handleOpenDialog(supplier)}
+                        sx={{
+                          color: theme.palette.primary.main,
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          },
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        onClick={() => handleDelete(supplier._id)}
+                        sx={{
+                          color: theme.palette.error.main,
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          },
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </TableCell>
+              </motion.tr>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            boxShadow: 3,
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+          color: 'white',
+          fontWeight: 'bold'
+        }}>
+          {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
         </DialogTitle>
-        <form onSubmit={handleSubmit}>
-          <DialogContent>
+        <DialogContent sx={{ p: 3 }}>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
             <TextField
-              autoFocus
-              margin="dense"
-              name="name"
-              label="Name"
-              type="text"
               fullWidth
-              required
+              label="Name"
+              name="name"
               value={formData.name}
               onChange={handleInputChange}
+              margin="normal"
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <BusinessIcon sx={{ color: theme.palette.primary.main }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 2 }}
             />
             <TextField
-              margin="dense"
-              name="email"
-              label="Email"
-              type="email"
               fullWidth
-              required
+              label="Email"
+              name="email"
+              type="email"
               value={formData.email}
               onChange={handleInputChange}
+              margin="normal"
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon sx={{ color: theme.palette.secondary.main }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 2 }}
             />
             <TextField
-              margin="dense"
-              name="phone"
-              label="Phone"
-              type="text"
               fullWidth
-              required
+              label="Phone"
+              name="phone"
               value={formData.phone}
               onChange={handleInputChange}
+              margin="normal"
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneIcon sx={{ color: theme.palette.success.main }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 2 }}
             />
             <TextField
-              margin="dense"
-              name="branch"
-              label="Branch"
-              type="text"
               fullWidth
-              required
+              label="Branch"
+              name="branch"
               value={formData.branch}
               onChange={handleInputChange}
+              margin="normal"
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <StoreIcon sx={{ color: theme.palette.info.main }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 2 }}
             />
             <TextField
-              margin="dense"
-              name="address"
-              label="Address"
-              type="text"
               fullWidth
-              multiline
-              rows={3}
+              label="Address"
+              name="address"
               value={formData.address}
               onChange={handleInputChange}
+              margin="normal"
+              multiline
+              rows={3}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LocationIcon sx={{ color: theme.palette.warning.main }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 2 }}
             />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type="submit" variant="contained" color="primary">
-              {editingSupplier ? 'Update' : 'Add'}
-            </Button>
-          </DialogActions>
-        </form>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseDialog} sx={{ borderRadius: '8px' }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            sx={{ 
+              borderRadius: '8px',
+              background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+            }}
+          >
+            {editingSupplier ? 'Update' : 'Add'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

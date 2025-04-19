@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -23,10 +23,13 @@ import {
   Select,
   MenuItem,
   Grid,
-  Chip
+  Chip,
+  Tooltip,
+  alpha
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, Email as EmailIcon, CheckCircle as CheckCircleIcon, Pending as PendingIcon, Error as ErrorIcon } from '@mui/icons-material';
 import axios from 'axios';
+import { useTheme } from '@mui/material/styles';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -47,10 +50,14 @@ const Orders = () => {
   const [viewOrder, setViewOrder] = useState(null);
   const [success, setSuccess] = useState('');
   const [autoOrders, setAutoOrders] = useState([]);
+  const [refreshInterval] = useState(5000); // 5 seconds refresh interval
+  const theme = useTheme();
 
   const statusOptions = [
-    { value: 'Email Sent', label: 'Email Sent' },
-    { value: 'Completed', label: 'Completed' }
+    { value: 'Pending', label: 'Pending', icon: <PendingIcon />, color: 'warning' },
+    { value: 'Email Sent', label: 'Email Sent', icon: <EmailIcon />, color: 'info' },
+    { value: 'Completed', label: 'Completed', icon: <CheckCircleIcon />, color: 'success' },
+    { value: 'Failed', label: 'Failed', icon: <ErrorIcon />, color: 'error' }
   ];
 
   useEffect(() => {
@@ -74,24 +81,35 @@ const Orders = () => {
     fetchData();
   }, []);
 
-  const fetchOrders = async () => {
+  // Create a memoized fetch function
+  const fetchOrders = useCallback(async () => {
     try {
-      console.log('Fetching orders...');
       const response = await axios.get('http://localhost:5001/api/orders');
-      console.log('Orders response:', response.data);
-      
       const ordersData = response.data.data || response.data;
       if (!Array.isArray(ordersData)) {
         throw new Error('Invalid orders data format');
       }
-      
       setOrders(ordersData);
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      setError('Failed to fetch orders');
-      setOrders([]);
+      if (error.response?.status !== 429) { // Don't show error for rate limiting
+        console.error('Error fetching orders:', error);
+        setError('Failed to fetch orders');
+        setOrders([]);
+      }
     }
-  };
+  }, []);
+
+  // Set up automatic refresh
+  useEffect(() => {
+    // Initial fetch
+    fetchOrders();
+
+    // Set up interval for automatic refresh
+    const intervalId = setInterval(fetchOrders, refreshInterval);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [fetchOrders, refreshInterval]);
 
   const fetchCustomers = async () => {
     try {
@@ -302,29 +320,23 @@ const Orders = () => {
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
-      if (newStatus === 'Completed') {
-        // Delete the order if status is changed to Completed
-        const response = await axios.delete(`http://localhost:5001/api/orders/${orderId}`);
-        
-        if (response.data.success) {
-          // Remove the order from the state
-          setOrders(orders.filter(order => order._id !== orderId));
-          setSuccess('Order completed and removed successfully');
-        }
-      } else {
-        // Update status for other cases
-        const response = await axios.put(`http://localhost:5001/api/orders/${orderId}`, {
-          status: newStatus
-        });
-        
-        if (response.data.success) {
-          // Update the orders state with the new status
-          setOrders(orders.map(order => 
+      const response = await axios.put(`http://localhost:5001/api/orders/${orderId}`, {
+        status: newStatus
+      });
+
+      if (response.data.success) {
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
             order._id === orderId 
               ? { ...order, status: newStatus }
               : order
-          ));
-          setSuccess('Order status updated successfully');
+          )
+        );
+        setSuccess(`Order status updated to ${newStatus}`);
+        
+        // If status is changed to Completed, remove the order from the list
+        if (newStatus === 'Completed') {
+          setOrders(prevOrders => prevOrders.filter(order => order._id !== orderId));
         }
       }
     } catch (error) {
@@ -345,11 +357,25 @@ const Orders = () => {
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Orders</Typography>
+        <Typography variant="h4" sx={{ 
+          background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontWeight: 'bold'
+        }}>
+          Orders
+        </Typography>
         <Button
           variant="contained"
           color="primary"
+          startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
+          sx={{
+            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+            '&:hover': {
+              background: 'linear-gradient(45deg, #1976D2 30%, #1E88E5 90%)',
+            },
+          }}
         >
           Create Order
         </Button>
@@ -424,89 +450,92 @@ const Orders = () => {
           <TableHead>
             <TableRow>
               <TableCell>Order ID</TableCell>
-              <TableCell>Item Name</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Unit</TableCell>
-              <TableCell>Quantity</TableCell>
+              <TableCell>Items</TableCell>
               <TableCell>Total Amount</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Notes</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {orders.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center">
-                  No orders found
+            {orders.map((order) => (
+              <TableRow key={order._id}>
+                <TableCell>{order.orderId}</TableCell>
+                <TableCell>
+                  {order.items.map((item, index) => (
+                    <Box key={index} sx={{ mb: 1 }}>
+                      <Typography variant="body2">
+                        {item.item.name} - {item.quantity} {item.item.unit}
+                      </Typography>
+                    </Box>
+                  ))}
                 </TableCell>
-              </TableRow>
-            ) : (
-              orders.map((order) => (
-                <TableRow key={order._id}>
-                  <TableCell>{order.orderId}</TableCell>
-                  <TableCell>
-                    {order.items.map((item, index) => (
-                      <div key={index}>
-                        {item.item?.name || 'N/A'}
-                      </div>
-                    ))}
-                  </TableCell>
-                  <TableCell>
-                    {order.items.map((item, index) => (
-                      <div key={index}>
-                        {item.item?.category || 'N/A'}
-                      </div>
-                    ))}
-                  </TableCell>
-                  <TableCell>
-                    {order.items.map((item, index) => (
-                      <div key={index}>
-                        {item.item?.unit || 'N/A'}
-                      </div>
-                    ))}
-                  </TableCell>
-                  <TableCell>
-                    {order.items.map((item, index) => (
-                      <div key={index}>
-                        {item.quantity}
-                      </div>
-                    ))}
-                  </TableCell>
-                  <TableCell>₹{order.totalAmount}</TableCell>
-                  <TableCell>
+                <TableCell>₹{order.totalAmount}</TableCell>
+                <TableCell>
+                  <FormControl size="small" fullWidth>
                     <Select
                       value={order.status}
                       onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                      fullWidth
-                      size="small"
+                      sx={{
+                        '& .MuiSelect-select': {
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1
+                        }
+                      }}
                     >
                       {statusOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
+                        <MenuItem 
+                          key={option.value} 
+                          value={option.value}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                          }}
+                        >
+                          {React.cloneElement(option.icon, { 
+                            sx: { color: theme.palette[option.color].main } 
+                          })}
                           {option.label}
                         </MenuItem>
                       ))}
                     </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="small"
-                      startIcon={<EditIcon />}
-                      onClick={() => handleOpenDialog(order)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      startIcon={<DeleteIcon />}
-                      onClick={() => handleDeleteOrder(order._id)}
-                    >
-                      Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+                  </FormControl>
+                </TableCell>
+                <TableCell>{order.notes || '-'}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Edit">
+                      <IconButton
+                        onClick={() => handleOpenDialog(order)}
+                        sx={{
+                          color: theme.palette.primary.main,
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          },
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        onClick={() => handleDeleteOrder(order._id)}
+                        sx={{
+                          color: theme.palette.error.main,
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          },
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </TableContainer>

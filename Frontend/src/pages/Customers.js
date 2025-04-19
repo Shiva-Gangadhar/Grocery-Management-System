@@ -22,12 +22,30 @@ import {
   Select,
   FormControl,
   InputLabel,
-  InputAdornment
+  InputAdornment,
+  useTheme,
+  alpha,
+  Card,
+  CardContent,
+  Chip,
+  Tooltip,
+  Grid
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, Shuffle as ShuffleIcon } from '@mui/icons-material';
+import { 
+  Edit as EditIcon, 
+  Delete as DeleteIcon, 
+  Search as SearchIcon, 
+  Person as PersonIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+  Group as GroupIcon
+} from '@mui/icons-material';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 
 const Customers = () => {
+  const theme = useTheme();
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +54,12 @@ const Customers = () => {
   const [editCustomer, setEditCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [salespersons, setSalespersons] = useState([]);
+  const [stats, setStats] = useState({
+    totalCustomers: 0,
+    activeCustomers: 0,
+    assignedCustomers: 0,
+    unassignedCustomers: 0
+  });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -62,6 +86,20 @@ const Customers = () => {
       setFilteredCustomers(filtered);
     }
   }, [searchTerm, customers]);
+
+  useEffect(() => {
+    if (customers.length > 0) {
+      const activeCustomers = customers.filter(customer => customer.isActive).length;
+      const assignedCustomers = customers.filter(customer => customer.assignedStaff).length;
+      
+      setStats({
+        totalCustomers: customers.length,
+        activeCustomers,
+        assignedCustomers,
+        unassignedCustomers: customers.length - assignedCustomers
+      });
+    }
+  }, [customers]);
 
   const fetchCustomers = async () => {
     try {
@@ -185,101 +223,305 @@ const Customers = () => {
     }
   };
 
+  const StatCard = ({ title, value, icon, color }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card 
+        sx={{ 
+          height: '100%',
+          background: `linear-gradient(135deg, ${alpha(theme.palette[color].main, 0.1)} 0%, ${alpha(theme.palette[color].light, 0.1)} 100%)`,
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${alpha(theme.palette[color].main, 0.1)}`,
+          boxShadow: `0 8px 32px ${alpha(theme.palette[color].main, 0.1)}`,
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: `0 12px 40px ${alpha(theme.palette[color].main, 0.2)}`,
+          }
+        }}
+      >
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Box
+              sx={{
+                backgroundColor: alpha(theme.palette[color].main, 0.1),
+                borderRadius: '12px',
+                p: 1.5,
+                mr: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 4px 12px ${alpha(theme.palette[color].main, 0.2)}`,
+              }}
+            >
+              {React.cloneElement(icon, { sx: { color: theme.palette[color].main, fontSize: 28 } })}
+            </Box>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+              {title}
+            </Typography>
+          </Box>
+          <Typography 
+            variant="h4" 
+            component="div" 
+            sx={{ 
+              color: theme.palette[color].main,
+              fontWeight: 'bold',
+              textShadow: `0 2px 4px ${alpha(theme.palette[color].main, 0.2)}`,
+            }}
+          >
+            {value}
+          </Typography>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress />
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="80vh"
+        sx={{
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+        }}
+      >
+        <CircularProgress size={60} thickness={4} />
       </Box>
     );
   }
 
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Customers</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => handleOpenDialog()}
-        >
-          Add Customer
-        </Button>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Box mb={3}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search by name, email, or phone..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+    <Box 
+      sx={{
+        p: 3,
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Typography 
+          variant="h4" 
+          gutterBottom 
+          sx={{ 
+            mb: 4,
+            fontWeight: 'bold',
+            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
           }}
-        />
-      </Box>
+        >
+          Customer Management
+        </Typography>
+      </motion.div>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Address</TableCell>
-              <TableCell>Assigned Salesperson</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredCustomers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  {searchTerm ? 'No customers found matching your search' : 'No customers found'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredCustomers.map((customer) => (
-                <TableRow key={customer._id}>
-                  <TableCell>{customer.name}</TableCell>
-                  <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone || '-'}</TableCell>
-                  <TableCell>{customer.address || '-'}</TableCell>
-                  <TableCell>
-                    {customer.assignedStaff ? 
-                      `${customer.assignedStaff.name} (${customer.assignedStaff.staffId})` : 
-                      'Not assigned'}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleOpenDialog(customer)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDeleteCustomer(customer._id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Total Customers"
+            value={stats.totalCustomers}
+            icon={<PersonIcon />}
+            color="primary"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Active Customers"
+            value={stats.activeCustomers}
+            icon={<EmailIcon />}
+            color="success"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Assigned"
+            value={stats.assignedCustomers}
+            icon={<GroupIcon />}
+            color="info"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Unassigned"
+            value={stats.unassignedCustomers}
+            icon={<PhoneIcon />}
+            color="warning"
+          />
+        </Grid>
+      </Grid>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            borderRadius: 4,
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+            boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.1)}`,
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <TextField
+              size="small"
+              placeholder="Search customers..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                minWidth: 300,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  '&:hover fieldset': {
+                    borderColor: theme.palette.primary.main,
+                  },
+                },
+              }}
+            />
+            <Button
+              variant="contained"
+              startIcon={<PersonIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{
+                borderRadius: 2,
+                background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                boxShadow: `0 4px 8px ${alpha(theme.palette.primary.main, 0.2)}`,
+                '&:hover': {
+                  background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                  boxShadow: `0 6px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                }
+              }}
+            >
+              Add Customer
+            </Button>
+          </Box>
+
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Phone</TableCell>
+                  <TableCell>Address</TableCell>
+                  <TableCell>Assigned Salesperson</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              </TableHead>
+              <TableBody>
+                {filteredCustomers.map((customer) => (
+                  <motion.tr
+                    key={customer._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        {customer.name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <EmailIcon sx={{ color: theme.palette.primary.main, fontSize: 16 }} />
+                        {customer.email}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PhoneIcon sx={{ color: theme.palette.success.main, fontSize: 16 }} />
+                        {customer.phone}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LocationIcon sx={{ color: theme.palette.info.main, fontSize: 16 }} />
+                        {customer.address}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      {customer.assignedStaff ? (
+                        <Chip
+                          label={customer.assignedStaff.name}
+                          size="small"
+                          sx={{
+                            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                            color: theme.palette.primary.main,
+                            fontWeight: 'bold',
+                          }}
+                        />
+                      ) : (
+                        <Chip
+                          label="Unassigned"
+                          size="small"
+                          color="warning"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={customer.isActive ? 'Active' : 'Inactive'}
+                        color={customer.isActive ? 'success' : 'error'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            onClick={() => handleOpenDialog(customer)}
+                            sx={{
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                              },
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            onClick={() => handleDeleteCustomer(customer._id)}
+                            sx={{
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                backgroundColor: alpha(theme.palette.error.main, 0.1),
+                              },
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </motion.div>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{editCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>

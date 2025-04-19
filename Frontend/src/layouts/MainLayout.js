@@ -36,12 +36,12 @@ const MainLayout = () => {
   };
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
-    { text: 'Customers', icon: <PeopleIcon />, path: '/customers' },
-    { text: 'Orders', icon: <OrdersIcon />, path: '/orders' },
-    { text: 'Staff', icon: <StaffIcon />, path: '/staff' },
-    { text: 'Suppliers', icon: <SuppliersIcon />, path: '/suppliers' }
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Inventory', icon: <InventoryIcon />, path: '/dashboard/inventory' },
+    { text: 'Customers', icon: <PeopleIcon />, path: '/dashboard/customers' },
+    { text: 'Orders', icon: <OrdersIcon />, path: '/dashboard/orders' },
+    { text: 'Staff', icon: <StaffIcon />, path: '/dashboard/staff' },
+    { text: 'Suppliers', icon: <SuppliersIcon />, path: '/dashboard/suppliers' }
   ];
 
   const drawer = (
