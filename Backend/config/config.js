@@ -6,7 +6,7 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   
   // MongoDB connection
-  mongoUri: process.env.MONGODB_URI || 'mongodb+srv://ShivaGangadhar:YSMVU8tiDvDavP28@cluster0.nwwyhvv.mongodb.net/Kirana?retryWrites=true&w=majority&appName=Cluster0',
+  mongoUri: process.env.MONGODB_URI || 'mongodb+srv://ShivaGangadhar:******.nwwyhvv.mongodb.net/Kirana?retryWrites=true&w=majority&appName=Cluster0',
   
   // JWT settings
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
